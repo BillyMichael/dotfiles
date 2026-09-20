@@ -1,2 +1,6 @@
 README.md
 .config/zsh/local.zsh
+{{- if ne .chezmoi.os "darwin" }}
+# macOS-only
+.config/ghostty
+{{- end }}

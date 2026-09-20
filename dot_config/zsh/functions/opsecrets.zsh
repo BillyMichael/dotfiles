@@ -74,7 +74,7 @@ OPSECRETS_RETRY_MINUTES=${OPSECRETS_RETRY_MINUTES:-10}
 
 opsecrets-refresh() {
   local dir="${OPSECRETS_CACHE:h}" lock="$OPSECRETS_CACHE.lock" stamp="$OPSECRETS_CACHE.attempt"
-  command mkdir -p -m 700 "$dir"
+  command mkdir -p "$dir" && command chmod 700 "$dir"   # -m only applies on creation; .zshrc may have made it first
 
   # Single-flight: the lock is a directory because mkdir is atomic. A lock older than
   # 10 minutes is treated as abandoned (e.g. Ctrl-C mid-refresh) and reclaimed.

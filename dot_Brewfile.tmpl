@@ -1,4 +1,5 @@
-# ~/.Brewfile — managed by chezmoi. Install everything on a fresh Mac with:  brew bundle --global
+# ~/.Brewfile — managed by chezmoi (template: casks and mac-only formulae are omitted on Linux/WSL).
+# Install everything with:  brew bundle --global
 tap "derailed/k9s"
 tap "hashicorp/tap"
 tap "int128/kubelogin"
@@ -37,9 +38,11 @@ brew "robusta-dev/krr/krr"
 brew "hashicorp/tap/terraform"
 brew "cloudformation-cli"
 
-# containers
+{{- if eq .chezmoi.os "darwin" }}
+# containers (macOS: podman runs in a VM; on WSL use `sudo apt install podman` or Docker Desktop)
 brew "podman"
 brew "podman-compose"
+{{- end }}
 
 # security scanning
 brew "trivy"
@@ -56,6 +59,7 @@ brew "duckdb"
 brew "poppler"
 brew "typst"
 
+{{- if eq .chezmoi.os "darwin" }}
 # apps
 cask "ghostty"
 cask "font-jetbrains-mono-nerd-font"
@@ -70,3 +74,4 @@ cask "todoist-app"
 cask "grammarly"
 cask "libreoffice"
 cask "ngrok"
+{{- end }}
