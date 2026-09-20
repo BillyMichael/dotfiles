@@ -10,7 +10,6 @@ $git_branch\
 $git_status\
 $kubernetes\
 $gcloud\
-$aws\
 $terraform\
 $helm\
 $golang\
@@ -53,9 +52,7 @@ style = 'bold yellow'
 disabled = true   # set false if you want the active gcloud project shown
 
 [aws]
-symbol = '󰸏 '
-format = '[$symbol($profile )(\($region\) )]($style)'
-style = 'bold yellow'
+disabled = true
 
 [terraform]
 symbol = '󱁢 '
