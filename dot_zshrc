@@ -9,6 +9,8 @@ HISTFILE="$HOME/.zsh_history"
 HISTSIZE=50000
 SAVEHIST=50000
 setopt HIST_IGNORE_ALL_DUPS HIST_FIND_NO_DUPS HIST_SAVE_NO_DUPS HIST_REDUCE_BLANKS SHARE_HISTORY
+setopt EXTENDED_HISTORY        # timestamps in the history file (history -i to see them)
+setopt HIST_IGNORE_SPACE       # a leading space keeps a command out of history
 setopt AUTO_CD AUTO_PUSHD PUSHD_IGNORE_DUPS PUSHD_SILENT
 setopt INTERACTIVE_COMMENTS
 
@@ -33,6 +35,22 @@ unset _zcd
 zstyle ':completion:*' menu select
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*'
 zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+
+# ---------- Keys (Home/End/Delete/PgUp/PgDn, Ctrl/Alt-Arrow word jumps) ----------
+bindkey -e                                  # emacs keymap
+bindkey '^[[H'    beginning-of-line         # Home
+bindkey '^[[1~'   beginning-of-line
+bindkey '^[[F'    end-of-line               # End
+bindkey '^[[4~'   end-of-line
+bindkey '^[[3~'   delete-char               # Delete
+bindkey '^[[5~'   up-line-or-history        # PgUp
+bindkey '^[[6~'   down-line-or-history      # PgDn
+bindkey '^[[1;5C' forward-word              # Ctrl-Right
+bindkey '^[[1;5D' backward-word             # Ctrl-Left
+bindkey '^[[1;3C' forward-word              # Alt-Right
+bindkey '^[[1;3D' backward-word             # Alt-Left
+bindkey '^[^?'    backward-kill-word        # Alt-Backspace
+bindkey '^[[Z'    reverse-menu-complete     # Shift-Tab
 
 # ---------- Editor / paths ----------
 export EDITOR=vim
