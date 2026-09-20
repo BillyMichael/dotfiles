@@ -1,7 +1,12 @@
 # ~/.zprofile — login-shell environment. Managed by chezmoi.
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
-# nvm (consider migrating to mise later; nvm adds noticeable startup time)
+# nvm is slow (~0.8s) to source, so we don't. Put the default node version on PATH
+# directly; `nvm` itself is lazy-loaded on first use (see .zshrc).
 export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+if [[ -r "$NVM_DIR/alias/default" ]]; then
+  _nvm_alias="$(<"$NVM_DIR/alias/default")"
+  _nvm_default=( "$NVM_DIR"/versions/node/v${_nvm_alias#v}*(N/On[1]) )
+  [[ -n "$_nvm_default" ]] && export PATH="$_nvm_default/bin:$PATH"
+  unset _nvm_alias _nvm_default
+fi

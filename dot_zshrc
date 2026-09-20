@@ -13,7 +13,13 @@ setopt AUTO_CD AUTO_PUSHD PUSHD_IGNORE_DUPS PUSHD_SILENT
 setopt INTERACTIVE_COMMENTS
 
 # ---------- Completion ----------
-fpath=("$HOMEBREW_PREFIX/share/zsh/site-functions" $fpath)
+ZSH_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
+mkdir -p "$ZSH_CACHE/completions"
+fpath=("$ZSH_CACHE/completions" "$HOMEBREW_PREFIX/share/zsh/site-functions" $fpath)
+# Generated completions are cached and only rebuilt when the binary changes
+if command -v kubectl >/dev/null; then
+  [[ "$ZSH_CACHE/completions/_kubectl" -nt "$(command -v kubectl)" ]] || kubectl completion zsh > "$ZSH_CACHE/completions/_kubectl"
+fi
 autoload -Uz compinit
 # Rebuild the completion cache at most once a day; otherwise trust it (fast start)
 if [[ -n ~/.zcompdump(#qN.mh+24) ]]; then compinit; else compinit -C; fi
@@ -87,10 +93,7 @@ alias gsw='git switch'
 alias k=kubectl
 command -v kubectx >/dev/null && alias kctx=kubectx
 command -v kubens  >/dev/null && alias kns=kubens
-if command -v kubectl >/dev/null; then
-  source <(kubectl completion zsh)
-  compdef k=kubectl
-fi
+command -v kubectl >/dev/null && compdef k=kubectl
 
 # ---------- Podman as Docker ----------
 if command -v podman >/dev/null; then
@@ -100,8 +103,19 @@ if command -v podman >/dev/null; then
   alias pcd='podman-compose down'
   alias pcl='podman-compose logs -f'
   alias pcr='podman-compose restart'
-  export DOCKER_HOST="unix://$(podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}' 2>/dev/null)"
+  # `podman machine inspect` costs ~30ms; cache the socket path until podman is upgraded
+  if [[ ! -s "$ZSH_CACHE/podman-socket" || ! "$ZSH_CACHE/podman-socket" -nt "$(command -v podman)" ]]; then
+    podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}' > "$ZSH_CACHE/podman-socket" 2>/dev/null || : > "$ZSH_CACHE/podman-socket"
+  fi
+  [[ -s "$ZSH_CACHE/podman-socket" ]] && export DOCKER_HOST="unix://$(<"$ZSH_CACHE/podman-socket")"
 fi
+
+# ---------- nvm (lazy: default node is already on PATH via .zprofile) ----------
+nvm() {
+  unfunction nvm
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+  nvm "$@"
+}
 
 # ---------- 1Password secrets → env ----------
 source "$HOME/.config/zsh/functions/opsecrets.zsh"
