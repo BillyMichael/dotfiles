@@ -1,0 +1,69 @@
+# ~/.Brewfile — managed by chezmoi. Install everything on a fresh Mac with:  brew bundle --global
+tap "derailed/k9s"
+tap "hashicorp/tap"
+tap "int128/kubelogin"
+tap "robscott/tap"
+tap "robusta-dev/krr"
+
+# shell
+brew "starship"
+brew "zsh-autosuggestions"
+brew "zsh-syntax-highlighting"
+brew "zsh-history-substring-search"
+brew "fzf"
+brew "zoxide"
+brew "eza"
+brew "bat"
+brew "chezmoi"
+brew "jq"
+brew "yq"
+brew "gh"
+brew "shellcheck"
+
+# kubernetes / platform
+brew "kubernetes-cli"
+brew "helm"
+brew "kind"
+brew "k3d"
+brew "argocd"
+brew "kubeconform"
+brew "kubescape"
+brew "kyverno"
+brew "hubble"
+brew "derailed/k9s/k9s"
+brew "int128/kubelogin/kubelogin"
+brew "robscott/tap/kube-capacity"
+brew "robusta-dev/krr/krr"
+brew "hashicorp/tap/terraform"
+brew "cloudformation-cli"
+
+# containers
+brew "podman-compose"
+
+# security scanning
+brew "trivy"
+brew "gitleaks"
+brew "trufflehog"
+
+# languages / data
+brew "go"
+brew "node"
+brew "yarn"
+brew "uv"
+brew "postgresql@16"
+brew "duckdb"
+brew "poppler"
+brew "typst"
+
+# apps
+cask "font-jetbrains-mono-nerd-font"
+cask "1password-cli"
+cask "visual-studio-code"
+cask "warp"
+cask "obsidian"
+cask "slack"
+cask "discord"
+cask "todoist-app"
+cask "grammarly"
+cask "libreoffice"
+cask "ngrok"

@@ -1,0 +1,22 @@
+[user]
+	email = billy.michael@globallogic.com
+	name = Billy Michael
+[pull]
+	rebase = false
+[core]
+	autocrlf = input
+	editor = vim
+[init]
+	defaultBranch = main
+[fetch]
+	prune = true
+[rebase]
+	autoStash = true
+[diff]
+	colorMoved = default
+[merge]
+	conflictstyle = diff3
+[alias]
+	lg = log --graph --oneline --decorate -20
+[credential]
+	helper = "!f() { echo \"username=${BITBUCKET_EMAIL}\"; echo \"password=${BITBUCKET_APP_PASSWORD}\"; }; f"
