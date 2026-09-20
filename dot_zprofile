@@ -6,7 +6,13 @@ eval "$(/opt/homebrew/bin/brew shellenv)"
 export NVM_DIR="$HOME/.nvm"
 if [[ -r "$NVM_DIR/alias/default" ]]; then
   _nvm_alias="$(<"$NVM_DIR/alias/default")"
-  _nvm_default=( "$NVM_DIR"/versions/node/v${_nvm_alias#v}*(N/On[1]) )
+  # follow alias chains such as default -> lts/* -> lts/jod -> v22.x (max 3 hops)
+  for _i in 1 2 3; do
+    [[ -r "$NVM_DIR/alias/$_nvm_alias" ]] || break
+    _nvm_alias="$(<"$NVM_DIR/alias/$_nvm_alias")"
+  done
+  # highest matching version, sorted numerically (nOn), so v22.23 beats v22.9
+  _nvm_default=( "$NVM_DIR"/versions/node/v${_nvm_alias#v}*(N/nOn[1]) )
   [[ -n "$_nvm_default" ]] && export PATH="$_nvm_default/bin:$PATH"
-  unset _nvm_alias _nvm_default
+  unset _nvm_alias _nvm_default _i
 fi

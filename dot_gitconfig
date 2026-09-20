@@ -18,5 +18,5 @@
 	conflictstyle = diff3
 [alias]
 	lg = log --graph --oneline --decorate -20
-[credential]
+[credential "https://bitbucket.org"]
 	helper = "!f() { echo \"username=${BITBUCKET_EMAIL}\"; echo \"password=${BITBUCKET_APP_PASSWORD}\"; }; f"

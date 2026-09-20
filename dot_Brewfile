@@ -38,6 +38,7 @@ brew "hashicorp/tap/terraform"
 brew "cloudformation-cli"
 
 # containers
+brew "podman"
 brew "podman-compose"
 
 # security scanning
@@ -47,8 +48,8 @@ brew "trufflehog"
 
 # languages / data
 brew "go"
-brew "node"
-brew "yarn"
+brew "nvm"      # node versions live in ~/.nvm; default version is put on PATH by .zprofile
+brew "yarn"     # pulls in brew node as a dependency; nvm's default wins on PATH
 brew "uv"
 brew "postgresql@16"
 brew "duckdb"
@@ -56,7 +57,9 @@ brew "poppler"
 brew "typst"
 
 # apps
+cask "ghostty"
 cask "font-jetbrains-mono-nerd-font"
+cask "1password"        # desktop app: required for op biometric unlock
 cask "1password-cli"
 cask "visual-studio-code"
 cask "warp"

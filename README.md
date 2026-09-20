@@ -6,9 +6,11 @@ Managed with [chezmoi](https://chezmoi.io). Source lives in `~/.local/share/chez
 ```sh
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 brew install chezmoi
-chezmoi init --apply <git-remote-of-this-repo>
+chezmoi init --apply BillyMichael
 brew bundle --global
 ```
+The zshrc guards every optional tool, so the first shell works before `brew bundle` has run.
+On a machine where Ghostty or 1Password were installed by hand, adopt them: `brew install --cask --adopt ghostty 1password`.
 
 ## Day to day
 | Task | Command |
@@ -28,3 +30,4 @@ brew bundle --global
 
 ## Not tracked, on purpose
 `~/.config/zsh/local.zsh` holds secrets and machine/client-specific exports. It is sourced last by `.zshrc` and listed in `.chezmoiignore`.
+`~/.cache/zsh/` holds the 1Password export cache (mode 600, refreshed at most every 12h, single-flight with a lock, 10-minute back-off after a failed attempt).

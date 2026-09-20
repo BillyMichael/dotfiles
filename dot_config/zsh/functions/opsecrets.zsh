@@ -9,6 +9,10 @@ opsecrets() {
     $quiet || echo "1Password CLI (op) not installed"
     return 1
   fi
+  if ! command -v jq &> /dev/null; then
+    $quiet || echo "jq not installed"
+    return 1
+  fi
 
   $quiet || echo "Loading secrets from 1Password (tag: terminal)..."
 
@@ -30,14 +34,17 @@ opsecrets() {
   local count=0
   while IFS= read -r item_id; do
     local item_json
-    item_json=$(op item get "$item_id" --format json 2>/dev/null)
+    item_json=$(op item get "$item_id" --format json 2>/dev/null) || continue
+    [[ -n "$item_json" ]] || continue
 
     local title
-    title=$(echo "$item_json" | op read --no-newline "op://$(echo "$item_json" | jq -r '.vault.name')/$(echo "$item_json" | jq -r '.title')/title" 2>/dev/null || echo "$item_json" | jq -r '.title')
+    title=$(jq -r '.title // empty' <<<"$item_json")
 
     # Convert title to valid env var name (uppercase, replace spaces/dashes with underscore)
     local var_name
     var_name=$(echo "$title" | tr '[:lower:]' '[:upper:]' | tr ' -' '_' | tr -cd '[:alnum:]_')
+    # must be a valid shell identifier (non-empty, not starting with a digit) or `export` is fatal
+    [[ "$var_name" == [A-Za-z_]* ]] || { $quiet || echo "  Skipped (bad name): $title"; continue; }
 
     # Get the password or credential field
     local secret
@@ -55,31 +62,49 @@ opsecrets() {
 }
 
 # ---------------------------------------------------------------------------
-# Cached loading. `op` is slow (~1s per item), so shells source a cache file
-# and refresh it in the background when it is older than OPSECRETS_TTL_HOURS.
-# The cache is mode 600 in ~/.cache. Force a refresh with: opsecrets-refresh
+# Cached loading. `op` is slow and each call can prompt for Touch ID, so shells
+# source a cache file and refresh it in the background when it is older than
+# OPSECRETS_TTL_HOURS. Only one refresh runs at a time (mkdir lock), and after a
+# failed or in-progress attempt no shell retries for OPSECRETS_RETRY_MINUTES.
+# Files live in a 700 dir under ~/.cache/zsh. Force a refresh: opsecrets-refresh
 # ---------------------------------------------------------------------------
-OPSECRETS_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/opsecrets.env"
+OPSECRETS_CACHE="${OPSECRETS_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/zsh/opsecrets.env}"
 OPSECRETS_TTL_HOURS=${OPSECRETS_TTL_HOURS:-12}
+OPSECRETS_RETRY_MINUTES=${OPSECRETS_RETRY_MINUTES:-10}
 
 opsecrets-refresh() {
-  local tmp="$OPSECRETS_CACHE.tmp.$$"
-  mkdir -p "${OPSECRETS_CACHE:h}"
-  : > "$tmp" && chmod 600 "$tmp"
-  if OPSECRETS_OUT="$tmp" opsecrets -q &>/dev/null; then
-    mv -f "$tmp" "$OPSECRETS_CACHE"
-  else
-    rm -f "$tmp"; return 1
+  local dir="${OPSECRETS_CACHE:h}" lock="$OPSECRETS_CACHE.lock" stamp="$OPSECRETS_CACHE.attempt"
+  command mkdir -p -m 700 "$dir"
+
+  # Single-flight: the lock is a directory because mkdir is atomic. A lock older than
+  # 10 minutes is treated as abandoned (e.g. Ctrl-C mid-refresh) and reclaimed.
+  if ! command mkdir "$lock" 2>/dev/null; then
+    local abandoned=( "$lock"(N/mm+10) )
+    (( $#abandoned )) || return 1
+    command rmdir "$lock" 2>/dev/null
+    command mkdir "$lock" 2>/dev/null || return 1
   fi
+  : > "$stamp"   # "last attempted", read by opsecrets-load for back-off
+
+  # No EXIT trap here: zsh runs a function's EXIT trap after its locals are gone,
+  # so cleanup is explicit. mktemp creates the file 600 before any secret is written.
+  local tmp rc=1
+  if tmp=$(command mktemp "$OPSECRETS_CACHE.XXXXXX"); then
+    if OPSECRETS_OUT="$tmp" opsecrets -q &>/dev/null && [[ -s "$tmp" ]]; then
+      command mv -f "$tmp" "$OPSECRETS_CACHE" && rc=0
+    fi
+    command rm -f "$tmp"          # no-op after a successful mv; removes a half-written file otherwise
+  fi
+  command rmdir "$lock" 2>/dev/null
+  return $rc
 }
 
 opsecrets-load() {
-  [[ -f "$OPSECRETS_CACHE" ]] && source "$OPSECRETS_CACHE"
-  local stale=1
-  if [[ -f "$OPSECRETS_CACHE" ]]; then
-    local age=$(( $(date +%s) - $(stat -f %m "$OPSECRETS_CACHE") ))
-    (( age < OPSECRETS_TTL_HOURS * 3600 )) && stale=0
-  fi
-  (( stale )) && ( opsecrets-refresh &>/dev/null & )
+  [[ -r "$OPSECRETS_CACHE" ]] && source "$OPSECRETS_CACHE"
+  local fresh=( "$OPSECRETS_CACHE"(N.mh-$OPSECRETS_TTL_HOURS) )
+  (( $#fresh )) && return 0
+  local tried=( "$OPSECRETS_CACHE.attempt"(N.mm-$OPSECRETS_RETRY_MINUTES) )
+  (( $#tried )) && return 0
+  ( opsecrets-refresh &>/dev/null & )
   return 0
 }

@@ -21,8 +21,15 @@ if command -v kubectl >/dev/null; then
   [[ "$ZSH_CACHE/completions/_kubectl" -nt "$(command -v kubectl)" ]] || kubectl completion zsh > "$ZSH_CACHE/completions/_kubectl"
 fi
 autoload -Uz compinit
-# Rebuild the completion cache at most once a day; otherwise trust it (fast start)
-if [[ -n ~/.zcompdump(#qN.mh+24) ]]; then compinit; else compinit -C; fi
+# Rebuild the completion dump at most once a day; otherwise trust it (-C skips the security scan).
+# compinit does not bump the dump's mtime when nothing changed, so touch it after a full run.
+_zcd=( ~/.zcompdump(N.mh+24) )
+if (( $#_zcd )) || [[ ! -f ~/.zcompdump ]]; then
+  compinit -d ~/.zcompdump && touch ~/.zcompdump
+else
+  compinit -C -d ~/.zcompdump
+fi
+unset _zcd
 zstyle ':completion:*' menu select
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*'
 zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
@@ -33,21 +40,31 @@ export VISUAL=vim
 export PATH="$HOME/.local/bin:$PATH"
 
 # ---------- Prompt, navigation, fuzzy finding ----------
-eval "$(starship init zsh)"          # prompt: ~/.config/starship.toml
-eval "$(zoxide init zsh)"            # z <dir-fragment> to jump, zi for interactive picker
-source <(fzf --zsh)                  # Ctrl-R history, Ctrl-T files, Alt-C directories
+# Everything below is guarded so a fresh machine works before `brew bundle --global` has run.
+command -v starship >/dev/null && eval "$(starship init zsh)"   # prompt: ~/.config/starship.toml
+command -v zoxide   >/dev/null && eval "$(zoxide init zsh)"     # z <dir-fragment> to jump, zi = interactive
+command -v fzf      >/dev/null && source <(fzf --zsh)           # Ctrl-R history, Ctrl-T files, Alt-C dirs
 export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border --info=inline'
 
 # ---------- Plugins (installed by Homebrew, no framework) ----------
-source "$HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
-ZSH_AUTOSUGGEST_STRATEGY=(history completion)
-source "$HOMEBREW_PREFIX/share/zsh-history-substring-search/zsh-history-substring-search.zsh"
-bindkey '^[[A' history-substring-search-up
-bindkey '^[[B' history-substring-search-down
-bindkey '^P'   history-substring-search-up
-bindkey '^N'   history-substring-search-down
+_plug="$HOMEBREW_PREFIX/share"
+if [[ -r "$_plug/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
+  source "$_plug/zsh-autosuggestions/zsh-autosuggestions.zsh"
+  ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+fi
+if [[ -r "$_plug/zsh-history-substring-search/zsh-history-substring-search.zsh" ]]; then
+  source "$_plug/zsh-history-substring-search/zsh-history-substring-search.zsh"
+  bindkey '^[[A' history-substring-search-up
+  bindkey '^[[B' history-substring-search-down
+  bindkey '^P'   history-substring-search-up
+  bindkey '^N'   history-substring-search-down
+fi
 # syntax highlighting must be sourced last of the plugins
-source "$HOMEBREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+[[ -r "$_plug/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]] && source "$_plug/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+unset _plug
+
+# ---------- Functions (sourced before aliases so `rm -i` etc. are not baked into them) ----------
+source "$HOME/.config/zsh/functions/opsecrets.zsh"
 
 # ---------- Modern replacements ----------
 if command -v eza >/dev/null; then
@@ -111,14 +128,17 @@ if command -v podman >/dev/null; then
 fi
 
 # ---------- nvm (lazy: default node is already on PATH via .zprofile) ----------
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 nvm() {
   unfunction nvm
-  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+  if   [[ -s "$NVM_DIR/nvm.sh" ]];                 then \. "$NVM_DIR/nvm.sh"                  # curl installer
+  elif [[ -s "$HOMEBREW_PREFIX/opt/nvm/nvm.sh" ]]; then \. "$HOMEBREW_PREFIX/opt/nvm/nvm.sh"  # brew "nvm"
+  else echo "nvm not installed (brew install nvm)"; return 127
+  fi
   nvm "$@"
 }
 
 # ---------- 1Password secrets → env ----------
-source "$HOME/.config/zsh/functions/opsecrets.zsh"
 opsecrets-load   # cached; refreshes in background when stale (opsecrets-refresh to force)
 
 # ---------- Machine-local, untracked (secrets, client/project-specific exports) ----------
