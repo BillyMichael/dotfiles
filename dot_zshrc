@@ -105,7 +105,7 @@ fi
 
 # ---------- 1Password secrets → env ----------
 source "$HOME/.config/zsh/functions/opsecrets.zsh"
-opsecrets -q &>/dev/null
+opsecrets-load   # cached; refreshes in background when stale (opsecrets-refresh to force)
 
 # ---------- Machine-local, untracked (secrets, client/project-specific exports) ----------
 [[ -f "$HOME/.config/zsh/local.zsh" ]] && source "$HOME/.config/zsh/local.zsh"

@@ -45,10 +45,41 @@ opsecrets() {
 
     if [[ -n "$secret" && "$secret" != "null" ]]; then
       export "$var_name"="$secret"
+      [[ -n "$OPSECRETS_OUT" ]] && printf 'export %s=%q\n' "$var_name" "$secret" >> "$OPSECRETS_OUT"
       $quiet || echo "  Exported: $var_name"
       ((count++))
     fi
   done < <(echo "$items" | jq -r '.[].id')
 
   $quiet || echo "Loaded $count secret(s)"
+}
+
+# ---------------------------------------------------------------------------
+# Cached loading. `op` is slow (~1s per item), so shells source a cache file
+# and refresh it in the background when it is older than OPSECRETS_TTL_HOURS.
+# The cache is mode 600 in ~/.cache. Force a refresh with: opsecrets-refresh
+# ---------------------------------------------------------------------------
+OPSECRETS_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/opsecrets.env"
+OPSECRETS_TTL_HOURS=${OPSECRETS_TTL_HOURS:-12}
+
+opsecrets-refresh() {
+  local tmp="$OPSECRETS_CACHE.tmp.$$"
+  mkdir -p "${OPSECRETS_CACHE:h}"
+  : > "$tmp" && chmod 600 "$tmp"
+  if OPSECRETS_OUT="$tmp" opsecrets -q &>/dev/null; then
+    mv -f "$tmp" "$OPSECRETS_CACHE"
+  else
+    rm -f "$tmp"; return 1
+  fi
+}
+
+opsecrets-load() {
+  [[ -f "$OPSECRETS_CACHE" ]] && source "$OPSECRETS_CACHE"
+  local stale=1
+  if [[ -f "$OPSECRETS_CACHE" ]]; then
+    local age=$(( $(date +%s) - $(stat -f %m "$OPSECRETS_CACHE") ))
+    (( age < OPSECRETS_TTL_HOURS * 3600 )) && stale=0
+  fi
+  (( stale )) && ( opsecrets-refresh &>/dev/null & )
+  return 0
 }
