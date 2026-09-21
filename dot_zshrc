@@ -48,8 +48,10 @@ zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 bindkey -e                                  # emacs keymap
 bindkey '^[[H'    beginning-of-line         # Home
 bindkey '^[[1~'   beginning-of-line
+bindkey '^[OH'    beginning-of-line         # Home (application cursor mode: Windows Terminal, tmux)
 bindkey '^[[F'    end-of-line               # End
 bindkey '^[[4~'   end-of-line
+bindkey '^[OF'    end-of-line               # End (application cursor mode)
 bindkey '^[[3~'   delete-char               # Delete
 bindkey '^[[5~'   up-line-or-history        # PgUp
 bindkey '^[[6~'   down-line-or-history      # PgDn
@@ -82,6 +84,8 @@ fi
 if _plugsrc zsh-history-substring-search; then
   bindkey '^[[A' history-substring-search-up
   bindkey '^[[B' history-substring-search-down
+  bindkey '^[OA' history-substring-search-up     # application cursor mode
+  bindkey '^[OB' history-substring-search-down
   bindkey '^P'   history-substring-search-up
   bindkey '^N'   history-substring-search-down
 fi
