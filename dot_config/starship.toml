@@ -1,8 +1,8 @@
 "$schema" = 'https://starship.rs/config-schema.json'
 # Pastel powerline: joined segments with arrow separators and rounded end caps, single line, ❯ after.
 #   os  dir  git  kubernetes  [language]
-# Colour blocks: pink (os) | peach (dir) | green (git) | yellow (kubernetes | language). Git and language
-# live in conditional groups ( ... ) so their slots vanish entirely when empty; git closes back to peach.
+# Three colour blocks: pink (os) | peach (dir git) | yellow (kubernetes | language). Git and language
+# live in conditional groups ( ... ) so their slots vanish entirely when empty; git has no divider.
 # Nerd Font glyphs are written as \u escapes (basic strings) so they survive any editor/tool that
 # strips private-use characters. Needs a Nerd Font (JetBrainsMono Nerd Font Mono).
 #    = left round cap    = arrow    = right round cap
@@ -18,10 +18,8 @@ format = """
 $os\
 [](fg:pink bg:peach)\
 $directory\
-([](fg:peach bg:green)\
-$git_branch\
-$git_status\
-[](fg:green bg:peach))\
+($git_branch\
+$git_status)\
 [](fg:peach bg:yellow)\
 $kubernetes\
 ([](fg:ink bg:yellow)\
@@ -66,12 +64,12 @@ read_only = "\U000F033E "
 read_only_style = 'bg:peach fg:red'
 
 [git_branch]
-style = 'bg:green fg:ink'
+style = 'bg:peach fg:ink'
 symbol = " "
 format = '[ $symbol$branch ]($style)'
 
 [git_status]
-style = 'bg:green fg:ink'
+style = 'bg:peach fg:ink'
 format = '[($all_status$ahead_behind )]($style)'
 ahead = '⇡${count}'
 behind = '⇣${count}'
