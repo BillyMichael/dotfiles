@@ -66,7 +66,7 @@ read_only_style = 'bg:peach fg:red'
 [git_branch]
 style = 'bg:peach fg:ink'
 symbol = " "
-format = '[ $symbol$branch ]($style)'
+format = '[on $symbol$branch ]($style)'
 
 [git_status]
 style = 'bg:peach fg:ink'
