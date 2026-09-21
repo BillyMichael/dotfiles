@@ -7,6 +7,23 @@ set -eu
 {{ if eq .chezmoi.os "linux" -}}
 # --- Linux / WSL (Ubuntu/Debian) ---
 if command -v apt-get >/dev/null 2>&1; then
+  # Repair third-party apt repos that otherwise spam warnings on every apt-get update.
+  # HashiCorp rotates signing keys: refresh the keyring if the repo is configured.
+  if [ -f /etc/apt/sources.list.d/hashicorp.list ]; then
+    echo ">> apt: refreshing HashiCorp signing key"
+    curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor --yes -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+  fi
+  # Docker: move from the legacy trusted.gpg keyring + wrong suite to a signed-by list for this release.
+  for f in /etc/apt/sources.list.d/*docker*.list; do
+    [ -f "$f" ] || continue
+    grep -q 'signed-by=' "$f" && continue
+    echo ">> apt: rewriting Docker repo ($f)"
+    sudo install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg
+    . /etc/os-release
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $VERSION_CODENAME stable" | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+    [ "$f" != /etc/apt/sources.list.d/docker.list ] && sudo rm -f "$f"
+  done
   echo ">> apt: zsh and Homebrew build prerequisites"
   sudo apt-get update -qq
   sudo apt-get install -y -qq zsh git curl build-essential procps file ca-certificates
