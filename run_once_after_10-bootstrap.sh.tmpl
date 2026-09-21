@@ -42,6 +42,11 @@ if [ ! -x "$BREW" ]; then
 fi
 eval "$("$BREW" shellenv)"
 
+# Homebrew >= 4.6 refuses formulae from third-party taps until they are trusted; do it for every tap in the Brewfile.
+if [ -f "$HOME/.Brewfile" ] && brew trust --help >/dev/null 2>&1; then
+  sed -n 's/^tap "\([^"]*\)".*/\1/p' "$HOME/.Brewfile" | while read -r tap; do brew trust "$tap" >/dev/null 2>&1 || true; done
+fi
+
 if [ "$fresh" = 1 ] && [ -f "$HOME/.Brewfile" ]; then
   echo ">> brew bundle --global (first run on this machine)"
   brew bundle --global --no-upgrade || echo "!! some packages failed; re-run: brew bundle --global"
