@@ -34,7 +34,10 @@ opsecrets() {
   local count=0
   while IFS= read -r item_id; do
     local item_json
-    item_json=$(op item get "$item_id" --format json 2>/dev/null) || continue
+    # </dev/null is load-bearing: this runs inside `while read` fed by a pipe, and op (a Windows
+    # binary via WSL interop here) inherits that pipe as stdin and swallows the remaining ids —
+    # one item loaded, loop over, no error. Never let a child in this loop see the loop's stdin.
+    item_json=$(op item get "$item_id" --format json 2>/dev/null </dev/null) || continue
     [[ -n "$item_json" ]] || continue
 
     local title
@@ -67,10 +70,13 @@ opsecrets() {
 # OPSECRETS_TTL_HOURS. Only one refresh runs at a time (mkdir lock), and after a
 # failed or in-progress attempt no shell retries for OPSECRETS_RETRY_MINUTES.
 # Files live in a 700 dir under ~/.cache/zsh. Force a refresh: opsecrets-refresh
+# Exported, not plain: tool shells (Claude Code's Bash, `!`) are rebuilt from the profile's
+# functions plus EXPORTED env, so a plain variable is empty there and opsecrets-refresh
+# then mktemps into the cwd and fails on `mv` with an empty destination.
 # ---------------------------------------------------------------------------
-OPSECRETS_CACHE="${OPSECRETS_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/zsh/opsecrets.env}"
-OPSECRETS_TTL_HOURS=${OPSECRETS_TTL_HOURS:-12}
-OPSECRETS_RETRY_MINUTES=${OPSECRETS_RETRY_MINUTES:-10}
+export OPSECRETS_CACHE="${OPSECRETS_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/zsh/opsecrets.env}"
+export OPSECRETS_TTL_HOURS=${OPSECRETS_TTL_HOURS:-12}
+export OPSECRETS_RETRY_MINUTES=${OPSECRETS_RETRY_MINUTES:-10}
 
 opsecrets-refresh() {
   local dir="${OPSECRETS_CACHE:h}" lock="$OPSECRETS_CACHE.lock" stamp="$OPSECRETS_CACHE.attempt"
