@@ -1,0 +1,12 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/bin/sh
+# kind: each node runs kube-proxy/kubelet watchers, and the kernel default of 128
+# inotify instances runs out ("fsnotify watcher init: too many open files"), which
+# crash-loops kube-proxy and cuts pods off from the API. systemd-sysctl applies the
+# file on every boot; `sysctl --system` applies it now. Reruns when this file changes.
+set -eu
+echo ">> sysctl: raising inotify limits for kind"
+printf 'fs.inotify.max_user_instances = 512\nfs.inotify.max_user_watches = 524288\n' |
+  sudo tee /etc/sysctl.d/99-kind.conf >/dev/null
+sudo sysctl --system >/dev/null
+{{ end -}}
